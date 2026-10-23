@@ -144,13 +144,12 @@ h1 em{display:inline-block;background:linear-gradient(100deg,#ff5a45,#ffb347 62%
 .hstat-l{display:block;margin-top:.35rem;font:500 .66rem var(--mono);letter-spacing:.1em;text-transform:uppercase;color:var(--ink-3)}
 .hero-art{position:relative;isolation:isolate;display:grid;place-items:start;min-height:500px}
 .reactor{position:relative;width:min(410px,80%);aspect-ratio:1;cursor:grab;touch-action:pan-y;-webkit-user-select:none;user-select:none}
-.reactor:active{cursor:grabbing}
+.reactor.dragging,.reactor.charging{cursor:grabbing}
 .reactor::before{content:'';position:absolute;inset:-22%;border-radius:50%;z-index:-1;background:radial-gradient(circle,rgba(255,69,53,.62) 0,rgba(215,38,30,.3) 42%,rgba(215,38,30,.08) 60%,transparent 72%)}
 .reactor svg{display:block;width:100%;height:100%;overflow:visible}
 .coil{fill:#1a1a1f;stroke:var(--gold);stroke-opacity:.5;stroke-width:1}
-.core{filter:drop-shadow(0 0 16px rgba(198,245,255,.95)) drop-shadow(0 0 46px rgba(110,215,255,.5));transition:filter .6s var(--spring)}
-.reactor:hover .core{filter:drop-shadow(0 0 22px rgba(198,245,255,1)) drop-shadow(0 0 64px rgba(110,215,255,.7))}
-.profile{position:absolute;right:0;bottom:0;width:min(300px,72%);padding:1.35rem 1.4rem 1.2rem;background:rgba(20,20,24,.58);backdrop-filter:blur(26px) saturate(170%);-webkit-backdrop-filter:blur(26px) saturate(170%);box-shadow:0 1px 0 rgba(255,255,255,.07) inset,0 34px 60px -20px rgba(0,0,0,.75)}
+.core{filter:drop-shadow(0 0 calc(16px*var(--pwr,1)) rgba(198,245,255,.95)) drop-shadow(0 0 calc(46px*var(--pwr,1)) rgba(110,215,255,.55));transition:opacity .5s ease}
+.profile{pointer-events:none;position:absolute;right:-3%;bottom:-3%;width:min(285px,70%);padding:1.35rem 1.4rem 1.2rem;background:rgba(20,20,24,.58);backdrop-filter:blur(26px) saturate(170%);-webkit-backdrop-filter:blur(26px) saturate(170%);box-shadow:0 1px 0 rgba(255,255,255,.07) inset,0 34px 60px -20px rgba(0,0,0,.75)}
 .profile-id{font:500 .64rem var(--mono);letter-spacing:.14em;text-transform:uppercase;color:var(--ink-3)}
 .profile-title{margin:.25rem 0 .7rem;font-size:1.15rem;font-weight:700;letter-spacing:-.02em}
 .pf{display:flex;justify-content:space-between;align-items:baseline;gap:1rem;padding:.55rem 0;border-top:1px solid var(--hair)}
@@ -190,7 +189,6 @@ h1 em{display:inline-block;background:linear-gradient(100deg,#ff5a45,#ffb347 62%
 .t-item{position:relative;padding:0 0 3rem}
 .t-item:last-child{padding-bottom:0}
 .t-item::before{content:'';position:absolute;left:calc(-2.25rem + 1px);top:.55rem;width:9px;height:9px;border-radius:50%;background:var(--bg);border:2px solid var(--gold);transition:background .4s ease,box-shadow .4s ease}
-.t-item:first-child::before{background:var(--red-hi);border-color:var(--red-hi);box-shadow:0 0 0 4px rgba(255,69,53,.18)}
 .t-meta{display:flex;align-items:center;flex-wrap:wrap;gap:.7rem;margin-bottom:.85rem}
 .t-date{font:500 .72rem var(--mono);letter-spacing:.08em;color:var(--gold);padding:.3rem .65rem;border:1px solid rgba(233,185,73,.35);border-radius:999px}
 .t-co{font-size:.86rem;color:var(--ink-2)}
@@ -316,6 +314,49 @@ footer a{color:var(--gold);display:inline-block;padding:.5rem .2rem}
 }
 @media(max-width:380px){.nav-in{padding:0 .85rem;gap:.5rem}.logo{font-size:.88rem;gap:.4rem}.nav-tools{gap:.4rem}.nav-cta{padding:0 .8rem}}
 
+
+/* ═══ v2 — interaction layer (every piece has a job) ═══ */
+/* Reactor = stack dial: coils are skills (hover to read, click to filter), core = hold to charge, release = repulsor pulse */
+.reactor-in{width:100%;height:100%;will-change:transform}
+.reactor svg{outline:none}
+.seg{cursor:pointer;outline:none}
+.seg .coil{transition:fill .35s ease,stroke-opacity .35s ease,stroke .35s ease}
+.seg:hover .coil,.seg:focus-visible .coil{fill:rgba(215,38,30,.5);stroke:var(--gold-hi);stroke-opacity:1}
+.hit{fill:transparent;cursor:pointer}
+.wave{fill:none;stroke:var(--core);stroke-width:3;vector-effect:non-scaling-stroke;pointer-events:none}
+.wave.r{stroke:var(--red-hi)}
+.reactor.await .core{opacity:0}
+.reactor.enter .reactor-in{animation:reactorIn 1.2s var(--spring) both}
+@keyframes reactorIn{from{opacity:0;transform:scale(.9);filter:blur(8px)}}
+.reactor.ignite .coil{animation:segOn .9s ease calc(var(--i,0)*70ms) both}
+@keyframes segOn{0%,100%{fill:#1a1a1f;stroke-opacity:.5}28%{fill:rgba(255,69,53,.6);stroke-opacity:1}}
+.dial-readout{position:absolute;left:0;bottom:2px;max-width:min(225px,44%);margin:0;font:500 .68rem/1.55 var(--mono);letter-spacing:.06em;color:var(--ink-3)}
+.dial-readout span{color:var(--gold);letter-spacing:.14em;text-transform:uppercase}
+.dial-readout b{color:var(--ink);font-weight:600;letter-spacing:.04em}
+.dial-readout em{display:block;color:var(--ink-3)}
+.profile{translate:calc(var(--tx,0)*-10px) calc(var(--ty,0)*-8px)}
+/* light follows the pointer (depth + feedback); not decoration: it tells you what is interactive */
+.proj-card::after,.cert-card::after,.skill-grp::after,.profile::after,.about-meta::after{content:'';position:absolute;inset:0;border-radius:inherit;pointer-events:none;opacity:0;transition:opacity .5s ease;background:radial-gradient(280px circle at var(--mx,50%) var(--my,0),rgba(255,217,120,.1),transparent 70%)}
+.proj-card:hover::after,.cert-card:hover::after,.skill-grp:hover::after,.profile:hover::after,.about-meta:hover::after{opacity:1}
+.about-meta{position:relative}
+.btn-primary,.c-link.primary,.nav-cta{position:relative;overflow:hidden;translate:var(--tx,0px) var(--ty,0px)}
+.btn-primary,.c-link.primary{transition:translate .55s var(--spring),transform .5s var(--spring),background .3s ease,border-color .3s ease,box-shadow .3s ease}
+.nav-cta{transition:translate .55s var(--spring),transform .5s var(--spring),box-shadow .3s ease,background .3s ease}
+.btn-primary::after,.c-link.primary::after,.nav-cta::after{content:'';position:absolute;inset:0;pointer-events:none;opacity:0;transition:opacity .3s ease;background:radial-gradient(90px circle at var(--mx,50%) var(--my,50%),rgba(255,255,255,.4),transparent 70%)}
+.btn-primary:hover::after,.c-link.primary:hover::after,.nav-cta:hover::after{opacity:1}
+/* experience timeline fills as you read; nodes ignite when reached */
+.timeline::after{content:'';position:absolute;left:4.5px;top:.6rem;width:2px;border-radius:2px;height:calc((100% - 1.2rem)*var(--fill,0));background:linear-gradient(180deg,var(--red-hi),var(--gold-hi));box-shadow:0 0 10px rgba(255,69,53,.55)}
+.t-item.lit::before{background:var(--red-hi);border-color:var(--red-hi);box-shadow:0 0 0 4px rgba(255,69,53,.18),0 0 14px rgba(255,69,53,.7)}
+/* section header draws a rule as it enters */
+.sec-header::after{content:'';display:block;height:1px;margin-top:1.5rem;background:linear-gradient(90deg,var(--gold),rgba(233,185,73,0) 75%);transform:scaleX(0);transform-origin:0 50%;transition:transform 1.3s var(--spring) .15s}
+.sec-header.visible::after{transform:scaleX(1)}
+#contact .sec-header::after{display:none}
+/* boot hand-off: the ignition core flies into the hero reactor */
+#boot.handoff{background:transparent;transition:background .9s ease}
+#boot.handoff .boot-text{animation:none;opacity:0}
+@media(max-width:980px){.profile{pointer-events:auto}.dial-readout{position:relative;max-width:none;margin:.9rem auto 0;text-align:center}}
+@media(prefers-reduced-motion:reduce){.reactor.enter .reactor-in,.reactor.ignite .coil{animation:none}.sec-header::after{transform:none;transition:none}.profile{translate:none}.btn-primary,.c-link.primary,.nav-cta{translate:none}}
+
 /* ───────── Accessibility: motion, transparency, contrast ───────── */
 @media(prefers-reduced-motion:reduce){
  html{scroll-behavior:auto}
@@ -364,9 +405,10 @@ footer a{color:var(--gold);display:inline-block;padding:.5rem .2rem}
    <div class="hstat"><span class="hstat-n">3</span><span class="hstat-l">Reference Letters</span></div>
   </div>
  </div>
- <div class="hero-art reveal d2">
+ <div class="hero-art">
   <div id="reactor" class="reactor"></div>
-  <aside class="profile" aria-label="Technical profile">
+  <p class="dial-readout" id="dialReadout" aria-live="polite"></p>
+  <aside class="profile reveal d3" aria-label="Technical profile">
    <div class="profile-id">Profile ID SP-2026-TECH</div>
    <div class="profile-title">Technical Profile</div>
    <div class="pf"><span class="pf-k">Role focus</span><span class="pf-v">Full-Stack · Automation</span></div>
@@ -696,59 +738,120 @@ const rb=(o,dim=320,c=.55)=>(o*dim*c)/(dim+c*Math.abs(o));            /* rubber-
 const project=(v,d=.998)=>(v/1000)*d/(1-d);                          /* where a flick is heading */
 const go=h=>{const t=$(h);if(t)t.scrollIntoView({behavior:rm.matches?'auto':'smooth',block:'start'})};
 
-/* ── Arc reactor (the one glowing thing) ── */
-const reactor=$('#reactor');let spinA=null,spinB=null;
+/* ── Arc reactor v2: a working stack dial ──
+   coils = skills (hover to read, click to filter) · core = press & hold to charge, release = repulsor pulse
+   drag = spin with momentum · pointer = depth tilt · scroll = slow rotation · idle = gentle spin */
+const app={filter:null};
+const reactor=$('#reactor'),readout=$('#dialReadout'),heroArt=$('.hero-art');
+const NODES=[['Python','Core language','python'],['Django','Backend framework','django'],['REST APIs','Service layer','rest'],['Docker','Containers & deployment','docker'],['AWS','EC2 · S3 cloud','aws'],
+ ['Zapier','Workflow automation','zapier'],['Bubble.io','No-code applications','bubble'],['Web3','Founder outreach & vetting','web3'],['CRM','HubSpot · Salesforce','hubspot'],['English','Near-native communication','english']];
+let fireReactor=()=>{};
 if(reactor){
  const P=(r,a)=>`${(200+r*Math.cos(a)).toFixed(1)} ${(200+r*Math.sin(a)).toFixed(1)}`;
  const ticks=[...Array(72)].map((_,i)=>{const a=i*5*Math.PI/180,r2=i%6===0?172:180;return`M${P(190,a)}L${P(r2,a)}`}).join('');
- const coils=[...Array(10)].map((_,i)=>{const a0=(i*36+3)*Math.PI/180,a1=(i*36+33)*Math.PI/180;return`<path class="coil" d="M${P(122,a0)}A122 122 0 0 1 ${P(122,a1)}L${P(78,a1)}A78 78 0 0 0 ${P(78,a0)}Z"/>`}).join('');
- reactor.innerHTML=`<svg viewBox="0 0 400 400" aria-hidden="true" focusable="false"><defs>
+ const segs=NODES.map((n,i)=>{const a0=(i*36+3)*Math.PI/180,a1=(i*36+33)*Math.PI/180;
+  return`<g class="seg" style="--i:${i}" tabindex="0" role="button" data-i="${i}" aria-label="${n[0]} — ${n[1]}. Filter skills"><path class="coil" d="M${P(122,a0)}A122 122 0 0 1 ${P(122,a1)}L${P(78,a1)}A78 78 0 0 0 ${P(78,a0)}Z"/></g>`}).join('');
+ reactor.innerHTML=`<div class="reactor-in"><svg viewBox="0 0 400 400" role="group" aria-label="Interactive stack dial" focusable="false"><defs>
   <radialGradient id="rgCore"><stop offset="0" stop-color="#fff"/><stop offset=".55" stop-color="#c6f5ff"/><stop offset="1" stop-color="#4fd0f5"/></radialGradient>
   <linearGradient id="rgGold" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#ffe08a"/><stop offset=".5" stop-color="#e9b949"/><stop offset="1" stop-color="#b87d0e"/></linearGradient>
   <radialGradient id="rgPlate" cx=".5" cy=".38"><stop offset="0" stop-color="#2a2a31"/><stop offset="1" stop-color="#0f0f12"/></radialGradient></defs>
   <circle cx="200" cy="200" r="197" fill="url(#rgPlate)" stroke="url(#rgGold)" stroke-width="1.6"/>
-  <g id="spinA"><path d="${ticks}" stroke="url(#rgGold)" stroke-width="1.2" opacity=".85" fill="none"/></g>
-  <circle cx="200" cy="200" r="152" fill="none" stroke="#d7261e" stroke-width="2.6" opacity=".95"/>
-  <g id="spinB">${coils}</g>
+  <g id="pT"><g id="spinA"><path d="${ticks}" stroke="url(#rgGold)" stroke-width="1.2" opacity=".85" fill="none"/></g></g>
+  <circle id="ring" cx="200" cy="200" r="152" fill="none" stroke="#d7261e" stroke-width="2.6" opacity=".95"/>
+  <g id="pC"><g id="spinB">${segs}</g></g>
   <circle cx="200" cy="200" r="62" fill="#0b0b0d" stroke="url(#rgGold)" stroke-width="1.6"/>
-  <g class="core"><circle cx="200" cy="200" r="40" fill="url(#rgCore)"/></g></svg>`;
- spinA=$('#spinA',reactor);spinB=$('#spinB',reactor);
- let drag=0,vel=0,raf=0,last=0,lastAng=0,active=false,scrollY0=0;
- const paint=()=>{const sy=rm.matches?0:scrollY*.045;
-  spinA.setAttribute('transform',`rotate(${(drag+sy).toFixed(2)} 200 200)`);
-  spinB.setAttribute('transform',`rotate(${(-(drag+sy)*1.6).toFixed(2)} 200 200)`)};
+  <g id="pK"><g class="core" id="coreG"><circle cx="200" cy="200" r="40" fill="url(#rgCore)"/></g></g>
+  <circle class="hit" cx="200" cy="200" r="66"><title>Press and hold to charge</title></circle>
+  <g id="waves"></g></svg></div>`;
+ const inner=$('.reactor-in',reactor),A=$('#spinA',reactor),B=$('#spinB',reactor),pT=$('#pT',reactor),pC=$('#pC',reactor),pK=$('#pK',reactor),coreG=$('#coreG',reactor),waves=$('#waves',reactor),ring=$('#ring',reactor);
+ const DEF='<span>Stack dial</span> Hover a coil · click to filter skills<em>Press &amp; hold the core to charge</em>';
+ const show=i=>{readout.innerHTML=i==null?DEF:`<span>Node ${String(i+1).padStart(2,'0')}</span> <b>${NODES[i][0]}</b> — ${NODES[i][1]}<em>Click to filter skills</em>`};show(null);
+ const S={drag:0,vel:0,idle:0,charge:0,charging:false,flare:0,down:null,dragging:false,moved:false,lastAng:0,lastT:0};
+ const TX={x:0,v:0},TY={x:0,v:0};let ttx=0,tty=0,raf=0,last=0,vis=true;
  const angle=e=>{const r=reactor.getBoundingClientRect();return Math.atan2(e.clientY-(r.top+r.height/2),e.clientX-(r.left+r.width/2))*180/Math.PI};
- const loop=t=>{const dt=Math.min(t-last,48);last=t;if(!active){drag+=vel*dt;vel*=Math.pow(.998,dt)}paint();
-  raf=(active||Math.abs(vel)>.003)?requestAnimationFrame(loop):0};
- reactor.addEventListener('pointerdown',e=>{if(rm.matches)return;active=true;vel=0;lastAng=angle(e);last=performance.now();reactor.setPointerCapture(e.pointerId);if(!raf)raf=requestAnimationFrame(loop)});
- reactor.addEventListener('pointermove',e=>{if(!active)return;const a=angle(e);let d=a-lastAng;if(d>180)d-=360;if(d<-180)d+=360;const now=performance.now();drag+=d;vel=d/Math.max(now-(reactor._t||now-16),8);reactor._t=now;lastAng=a;paint()});
- const rel=()=>{if(!active)return;active=false;last=performance.now();if(!raf)raf=requestAnimationFrame(loop)};
- reactor.addEventListener('pointerup',rel);reactor.addEventListener('pointercancel',rel);
- addEventListener('scroll',()=>{if(!raf&&!rm.matches)requestAnimationFrame(paint)},{passive:true});paint();
+ const paint=t=>{const sy=rm.matches?0:scrollY*.045,rot=S.drag+S.idle+sy,tx=TX.x,ty=TY.x;
+  A.setAttribute('transform',`rotate(${rot.toFixed(2)} 200 200)`);B.setAttribute('transform',`rotate(${(-rot*1.6).toFixed(2)} 200 200)`);
+  pT.setAttribute('transform',`translate(${(tx*1.5).toFixed(2)} ${(ty*1.5).toFixed(2)})`);pC.setAttribute('transform',`translate(${(tx*3).toFixed(2)} ${(ty*3).toFixed(2)})`);pK.setAttribute('transform',`translate(${(tx*6).toFixed(2)} ${(ty*6).toFixed(2)})`);
+  const breath=rm.matches?0:Math.sin(t/900)*.022,s=1+breath+S.charge*.2+S.flare*.28;
+  coreG.setAttribute('transform',`translate(200 200) scale(${s.toFixed(3)}) translate(-200 -200)`);
+  reactor.style.setProperty('--pwr',(1+S.charge*1.1+S.flare*1.4).toFixed(2));ring.setAttribute('opacity',(.95).toFixed(2));ring.setAttribute('stroke-width',(2.6+S.charge*2.4+S.flare*3).toFixed(2));
+  inner.style.transform=rm.matches?'':`perspective(900px) rotateX(${(-ty*7).toFixed(2)}deg) rotateY(${(tx*9).toFixed(2)}deg)`;
+  if(heroArt){heroArt.style.setProperty('--tx',tx.toFixed(3));heroArt.style.setProperty('--ty',ty.toFixed(3))}};
+ const loop=t=>{const dt=Math.min(t-last,48);last=t;
+  if(!S.dragging){S.drag+=S.vel*dt;S.vel*=Math.pow(.998,dt)}
+  if(!rm.matches)S.idle+=dt*.0007*(1+S.charge*18);
+  S.charge=S.charging?Math.min(1,S.charge+dt/900):Math.max(0,S.charge-dt/320);
+  S.flare*=Math.pow(.994,dt);if(S.flare<.002)S.flare=0;
+  step(TX,ttx,.55,dt/1000);step(TY,tty,.55,dt/1000);paint(t);
+  raf=(vis&&!document.hidden)?requestAnimationFrame(loop):0};
+ const ensure=()=>{if(!raf&&vis&&!document.hidden){last=performance.now();raf=requestAnimationFrame(loop)}};
+ new IntersectionObserver(es=>{vis=es[0].isIntersecting;ensure()}).observe(reactor);
+ document.addEventListener('visibilitychange',ensure);
+ /* repulsor pulse */
+ const wave=(red)=>{if(rm.matches)return;const c=document.createElementNS('http://www.w3.org/2000/svg','circle');c.setAttribute('class','wave'+(red?' r':''));c.setAttribute('cx','200');c.setAttribute('cy','200');c.setAttribute('r','100');c.style.transformOrigin='200px 200px';c.style.transformBox='view-box';waves.appendChild(c);
+  const a=c.animate([{transform:'scale(.42)',opacity:.95},{transform:'scale(2.5)',opacity:0}],{duration:red?1100:900,easing:'cubic-bezier(.16,1,.3,1)'});a.onfinish=()=>c.remove()};
+ fireReactor=(pw=.6)=>{S.flare=Math.min(1,.3+pw);S.vel+=pw*.4;wave(false);if(pw>.35)setTimeout(()=>wave(true),120);navigator.vibrate&&navigator.vibrate(pw>.35?[10,40,16]:8);ensure()};
+ /* pointer: charge on core, drag elsewhere (after a 5px threshold so coil clicks still work) */
+ reactor.addEventListener('pointerdown',e=>{S.moved=false;S.vel=0;S.down={x:e.clientX,y:e.clientY};
+  if(e.target.closest('.hit')&&!rm.matches){S.charging=true;try{reactor.setPointerCapture(e.pointerId)}catch(_){}reactor.classList.add('charging');ensure()}});
+ reactor.addEventListener('pointermove',e=>{if(!S.down||S.charging||rm.matches)return;
+  if(!S.dragging){if(Math.hypot(e.clientX-S.down.x,e.clientY-S.down.y)<5)return;S.dragging=true;S.moved=true;S.lastAng=angle(e);S.lastT=performance.now();try{reactor.setPointerCapture(e.pointerId)}catch(_){}reactor.classList.add('dragging');ensure()}
+  const a=angle(e);let d=a-S.lastAng;if(d>180)d-=360;if(d<-180)d+=360;const now=performance.now();S.drag+=d;S.vel=d/Math.max(now-S.lastT,8);S.lastT=now;S.lastAng=a});
+ const release=()=>{if(S.charging){fireReactor(Math.max(S.charge,.18));S.charging=false;reactor.classList.remove('charging')}
+  if(S.dragging){S.dragging=false;reactor.classList.remove('dragging')}S.down=null};
+ reactor.addEventListener('pointerup',release);reactor.addEventListener('pointercancel',release);
+ reactor.addEventListener('keydown',e=>{if(e.target.classList.contains('seg'))return;});
+ /* coils: read + filter */
+ $$('.seg',reactor).forEach(g=>{const i=+g.dataset.i;
+  g.addEventListener('pointerenter',()=>show(i));g.addEventListener('pointerleave',()=>show(null));g.addEventListener('focus',()=>show(i));g.addEventListener('blur',()=>show(null));
+  const act=()=>{if(S.moved)return;app.filter&&app.filter(NODES[i][2]);fireReactor(.25);go('#skills')};
+  g.addEventListener('click',act);g.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();act()}})});
+ /* depth tilt: pointer position over the hero */
+ if(matchMedia('(hover:hover) and (pointer:fine)').matches&&!rm.matches){
+  addEventListener('pointermove',e=>{const h=$('#hero').getBoundingClientRect();if(e.clientY<h.top||e.clientY>h.bottom){ttx=tty=0;return}
+   const r=reactor.getBoundingClientRect();ttx=clamp((e.clientX-(r.left+r.width/2))/520,-1,1);tty=clamp((e.clientY-(r.top+r.height/2))/420,-1,1)},{passive:true});
+  document.addEventListener('pointerleave',()=>{ttx=tty=0})}
+ addEventListener('scroll',()=>{if(!raf)requestAnimationFrame(paint)},{passive:true});
+ paint(0);ensure();
 }
 
-/* ── Ignition (once per session, skippable, never with reduced motion) ── */
+/* ── Ignition: once per session, skippable; the ignition core flies into the hero reactor ── */
 const boot=$('#boot');
-const start=()=>{
- /* reveal on scroll */
+const start=(arrive)=>{
  const io=new IntersectionObserver(es=>es.forEach(e=>{if(e.isIntersecting){e.target.classList.add('visible');io.unobserve(e.target)}}),{threshold:.12,rootMargin:'0px 0px -6% 0px'});
- $$('.reveal').forEach(el=>io.observe(el));
- /* count-up (10+) */
- $$('[data-count]').forEach(el=>{const n=+el.dataset.count,sfx=el.dataset.sfx||'',out=$('.hstat-n',el);if(!out||rm.matches)return;out.textContent='0'+sfx;
-  const io2=new IntersectionObserver(es=>{if(!es[0].isIntersecting)return;io2.disconnect();const t0=performance.now()+300;const f=t=>{const p=clamp((t-t0)/1200,0,1);out.textContent=Math.round(n*(1-Math.pow(1-p,4)))+sfx;if(p<1)requestAnimationFrame(f)};requestAnimationFrame(f)});io2.observe(el)});
+ $$('.reveal,.sec-header').forEach(el=>io.observe(el));
+ if(reactor){if(arrive){reactor.classList.add('ignite')}else{reactor.classList.add('enter','ignite')}}
+ /* count-up: every number in the stat row */
+ $$('.hstat').forEach(h=>{const out=$('.hstat-n',h);if(!out)return;const txt=out.textContent;if(!/\d/.test(txt))return;
+  h.setAttribute('role','group');h.setAttribute('aria-label',txt+' '+($('.hstat-l',h)||{textContent:''}).textContent);out.setAttribute('aria-hidden','true');
+  if(rm.matches)return;out.style.minWidth=out.getBoundingClientRect().width+'px';out.textContent=txt.replace(/\d+/g,'0');
+  const io2=new IntersectionObserver(es=>{if(!es[0].isIntersecting)return;io2.disconnect();const t0=performance.now()+(arrive?900:250);
+   const f=t=>{const p=clamp((t-t0)/1300,0,1),e=1-Math.pow(1-p,4);out.textContent=txt.replace(/\d+/g,m=>Math.round(+m*e));if(p<1)requestAnimationFrame(f)};requestAnimationFrame(f)});io2.observe(out)});
 };
 if(boot&&root.classList.contains('booting')){
- let done=false;const end=()=>{if(done)return;done=true;try{sessionStorage.setItem('sp_boot','1')}catch(_){}
-  boot.classList.add('out');root.classList.remove('booting');setTimeout(()=>boot.remove(),700);start()};
+ let done=false;
+ const end=()=>{if(done)return;done=true;try{sessionStorage.setItem('sp_boot','1')}catch(_){}
+  const bc=$('.boot-core',boot),hc=reactor&&$('.core',reactor);
+  if(bc&&hc&&!rm.matches){
+   reactor.classList.add('await');const a=bc.getBoundingClientRect(),b=hc.getBoundingClientRect();
+   boot.classList.add('handoff');
+   bc.animate([{transform:'none'},{transform:`translate(${(b.left+b.width/2)-(a.left+a.width/2)}px,${(b.top+b.height/2)-(a.top+a.height/2)}px) scale(${b.width/a.width})`}],{duration:1000,easing:SPRING,fill:'forwards'});
+   start(true);
+   setTimeout(()=>{reactor.classList.remove('await');boot.classList.add('out');root.classList.remove('booting');fireReactor(.55);setTimeout(()=>boot.remove(),600)},980);
+  }else{boot.classList.add('out');root.classList.remove('booting');setTimeout(()=>boot.remove(),700);start(false)}};
  setTimeout(end,1450);['pointerdown','keydown','wheel','touchstart'].forEach(ev=>addEventListener(ev,end,{once:true,passive:true}));
-}else{boot&&boot.remove();start()}
+}else{boot&&boot.remove();start(false)}
 
 /* ── Nav: scrolled state, active section, progress ── */
 const nav=$('#nav'),prog=$('#prog'),links=$$('.nav-links a');
 const secs=links.map(a=>$(a.getAttribute('href'))).filter(Boolean);
 let ticking=false;
+const tl=$('.timeline'),tItems=$$('.t-item');
+const updTl=()=>{if(!tl)return;const r=tl.getBoundingClientRect(),line=innerHeight*.55;
+ tl.style.setProperty('--fill',rm.matches?'1':clamp((line-r.top)/r.height,0,1).toFixed(4));
+ tItems.forEach(it=>it.classList.toggle('lit',rm.matches||it.getBoundingClientRect().top+10<line))};
 const onScroll=()=>{ticking=false;const y=scrollY,max=document.documentElement.scrollHeight-innerHeight;
- nav.classList.toggle('scrolled',y>12);if(prog)prog.style.transform=`scaleX(${max>0?clamp(y/max,0,1):0})`};
+ nav.classList.toggle('scrolled',y>12);if(prog)prog.style.transform=`scaleX(${max>0?clamp(y/max,0,1):0})`;updTl()};
 addEventListener('scroll',()=>{if(!ticking){ticking=true;requestAnimationFrame(onScroll)}},{passive:true});onScroll();
 if(secs.length){const so=new IntersectionObserver(es=>es.forEach(e=>{if(e.isIntersecting)links.forEach(a=>a.classList.toggle('active',a.getAttribute('href')==='#'+e.target.id))}),{rootMargin:'-45% 0px -50% 0px'});secs.forEach(s=>so.observe(s))}
 
@@ -819,6 +922,7 @@ if(grid){
   $$('.pill',g).forEach(p=>{const ok=okCat&&(!q||p.textContent.toLowerCase().includes(q));p.classList.toggle('off',!ok);if(ok)any++});
   g.classList.toggle('off',!any);shown+=any});count.textContent=`${shown} skills shown`};
  chips.forEach((c,i)=>c.addEventListener('click',()=>{cat=names[i];chips.forEach((x,j)=>x.setAttribute('aria-pressed',String(j===i)));apply()}));
+ app.filter=term=>{cat='All';chips.forEach((x,k)=>x.setAttribute('aria-pressed',String(k===0)));search.value=term;q=term.toLowerCase();apply()};
  search.addEventListener('input',()=>{q=search.value.trim().toLowerCase();apply()});apply();
 }
 
@@ -852,6 +956,15 @@ inp.addEventListener('keydown',e=>{if(e.key==='ArrowDown'){e.preventDefault();se
 $('.cmd-scrim',cmd).addEventListener('click',close);
 addEventListener('keydown',e=>{if((e.metaKey||e.ctrlKey)&&e.key.toLowerCase()==='k'){e.preventDefault();cmd.classList.contains('open')?close():openCmd()}else if(e.key==='Escape'&&cmd.classList.contains('open'))close()});
 const cb=$('#cmdBtn');if(cb){cb.addEventListener('click',openCmd);const k=$('kbd',cb);if(k&&/Mac|iPhone|iPad/.test(navigator.platform||navigator.userAgent))k.textContent='⌘K'}
+
+/* ── Pointer light on surfaces (what is interactive) + magnetic primary actions ── */
+$$('.proj-card,.cert-card,.skill-grp,.profile,.about-meta,.btn-primary,.c-link.primary,.nav-cta').forEach(el=>el.addEventListener('pointermove',e=>{const r=el.getBoundingClientRect();el.style.setProperty('--mx',(e.clientX-r.left)+'px');el.style.setProperty('--my',(e.clientY-r.top)+'px')}));
+if(matchMedia('(hover:hover) and (pointer:fine)').matches&&!rm.matches){
+ $$('.btn-primary,.c-link.primary,.nav-cta').forEach(el=>{
+  el.addEventListener('pointermove',e=>{const r=el.getBoundingClientRect();el.style.setProperty('--tx',(((e.clientX-(r.left+r.width/2))/r.width)*8).toFixed(1)+'px');el.style.setProperty('--ty',(((e.clientY-(r.top+r.height/2))/r.height)*6).toFixed(1)+'px')});
+  el.addEventListener('pointerleave',()=>{el.style.setProperty('--tx','0px');el.style.setProperty('--ty','0px')})})}
+/* logo = home + a pulse from the reactor */
+const lg=$('.logo');if(lg)lg.addEventListener('click',()=>{setTimeout(()=>fireReactor(.45),rm.matches?0:450)});
 })();
 </script>
 </body>
